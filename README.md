@@ -4,7 +4,7 @@
 
 Paste a YouTube link and ask questions in **English, Hindi or Hinglish**. Kshan answers in the language of your question, from the video's transcript, with **clickable timestamps** that open the video at that exact second in a built-in player.
 
-![Kshan demo](docs/screenshot.png)
+![Kshan demo](docs/Screenshot.png)
 
 *Kshan* (क्षण) means "a moment" in Hindi.
 
