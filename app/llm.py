@@ -21,7 +21,7 @@ RETRY_ON = (
 def make_model(name):
     return ChatGroq(
         model=name,
-        temperature=0.1,
+        temperature=0,
         api_key=os.environ.get("GROQ_API_KEY"),
         timeout=60,
         max_retries=1,

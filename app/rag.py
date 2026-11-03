@@ -1,3 +1,4 @@
+
 from app import store
 from app.chunking import format_time
 from app.embeddings import embed_query
@@ -7,7 +8,7 @@ from app import mapreduce
 MAX_LINES = 100
 OVERVIEW_LINES = 100
 OVERVIEW_BLOCK = 5
-
+ 
 LANGUAGE_RULES = {
     "english": "English.",
     "hinglish": (
@@ -17,22 +18,22 @@ LANGUAGE_RULES = {
     ),
     "hindi": "Hindi written in Devanagari script (देवनागरी).",
 }
-
-
+ 
+ 
 def range_label(time_range):
     if not time_range:
         return None
     start, end = time_range
     return {"start": format_time(start), "end": format_time(end)}
-
-
+ 
+ 
 def scope_ids(lines, time_range):
     if not time_range:
         return list(range(len(lines)))
     start, end = time_range
     return [i for i, line in enumerate(lines) if start <= line["start"] < end]
-
-
+ 
+ 
 def filter_keywords(lines, scope, keywords):
     limit = max(10, int(len(scope) * 0.10))
     kept = []
@@ -42,11 +43,11 @@ def filter_keywords(lines, scope, keywords):
         if 0 < count <= limit:
             kept.append(keyword)
     return kept
-
-
+ 
+ 
 def collect_line_ids(video_id, question, lines, scope, keywords, time_range):
     scope_set = set(scope)
-
+ 
     keyword_ids = set()
     for i in scope:
         text = lines[i]["text"].lower()
@@ -54,7 +55,7 @@ def collect_line_ids(video_id, question, lines, scope, keywords, time_range):
             for j in (i - 1, i, i + 1):
                 if j in scope_set:
                     keyword_ids.add(j)
-
+ 
     warning = None
     top_k = 12 if time_range else 4
     try:
@@ -62,17 +63,17 @@ def collect_line_ids(video_id, question, lines, scope, keywords, time_range):
     except Exception:
         chunks = []
         warning = "Semantic search was unavailable, so only keyword search was used."
-
+ 
     semantic_ids = set()
     for payload in chunks:
         for j in scope:
             if payload["start"] <= lines[j]["start"] <= payload["end"]:
                 semantic_ids.add(j)
-
+ 
     ordered = sorted(keyword_ids) + sorted(semantic_ids - keyword_ids)
     return sorted(ordered[:MAX_LINES]), warning
-
-
+ 
+ 
 def overview_ids(scope):
     n = len(scope)
     if n <= OVERVIEW_LINES:
@@ -84,8 +85,8 @@ def overview_ids(scope):
         begin = int(b * step)
         picked.extend(scope[begin : begin + OVERVIEW_BLOCK])
     return sorted(set(picked))
-
-
+ 
+ 
 def base_result(video_id, question, plan):
     warning = None
     if not plan["planned"]:
@@ -103,14 +104,14 @@ def base_result(video_id, question, plan):
         "note": None,
         "warning": warning,
     }
-
-
+ 
+ 
 def answer_overview(video_id, question, lines, plan, scope):
     result = base_result(video_id, question, plan)
     if not scope:
         result["answer"] = "There are no transcript lines in that part of the video."
         return result
-
+ 
     ids = overview_ids(scope)
     result["lines_used"] = len(ids)
     if len(ids) < len(scope):
@@ -118,11 +119,11 @@ def answer_overview(video_id, question, lines, plan, scope):
             "This answer is based on an evenly spaced sample of the transcript, "
             "so it may miss details."
         )
-
+ 
     context = "\n".join(
         f"({format_time(lines[i]['start'])}) {lines[i]['text']}" for i in ids
     )
-
+ 
     scope_text = "The excerpts cover the whole video."
     if plan["time_range"]:
         label = range_label(plan["time_range"])
@@ -130,7 +131,7 @@ def answer_overview(video_id, question, lines, plan, scope):
             f"The excerpts cover only the part of the video from {label['start']} "
             f"to {label['end']}."
         )
-
+ 
     system = (
         "You describe a video using ONLY the transcript excerpts provided. "
         f"{scope_text} The excerpts are sampled evenly, so some parts are "
@@ -149,31 +150,31 @@ def answer_overview(video_id, question, lines, plan, scope):
         f"(Reply language: {plan['language']}. Follow the language rule.)\n\n"
         f"Transcript excerpts:\n{context}"
     )
-
+ 
     result["answer"] = ask_llm(system, user).strip()
     return result
-
-
+ 
+ 
 def answer_specific(video_id, question, lines, plan, scope):
     result = base_result(video_id, question, plan)
     if not scope:
         result["answer"] = "There are no transcript lines in that part of the video."
         return result
-
+ 
     keywords = filter_keywords(lines, scope, plan["keywords"])
     ids, warning = collect_line_ids(
         video_id, question, lines, scope, keywords, plan["time_range"]
     )
-
+ 
     result["keywords"] = keywords
     result["lines_used"] = len(ids)
     if warning:
         result["warning"] = warning
-
+ 
     if not ids:
         result["answer"] = "No matching lines were found in this video."
         return result
-
+ 
     extra = ""
     if plan["question_type"] == "collect":
         extra = (
@@ -185,11 +186,11 @@ def answer_specific(video_id, question, lines, plan, scope):
             "This list is built from search results, not a scan of the whole "
             "video, so it may be incomplete."
         )
-
+ 
     context = "\n".join(
         f"[{i}] ({format_time(lines[i]['start'])}) {lines[i]['text']}" for i in ids
     )
-
+ 
     system = (
         "You answer questions about a video using ONLY the numbered transcript "
         "lines provided. Auto-captions may contain mistakes, so use judgment. "
@@ -198,7 +199,12 @@ def answer_specific(video_id, question, lines, plan, scope):
         "The transcript lines may be in a different language. Understand them, "
         "but do not copy their language into your reply. Describe the meaning in "
         "your own words instead of quoting them. "
-        'Return ONLY JSON like {"answer": "...", "evidence": [{"line": 12, "role": "direct", "why": "..."}]}. '
+        'Return ONLY JSON like {"found": true, "answer": "...", "evidence": [{"line": 12, "role": "direct", "why": "..."}]}. '
+        "'found' is true only if the lines really show the answer to the "
+        "question. If the thing asked about is not mentioned, set 'found' to "
+        "false, say in 'answer' that it is not mentioned, and return an empty "
+        "evidence list. A line about a different thing that only shares a word "
+        "with the question is NOT a match. "
         "In 'answer', give a short, direct answer and do not write timestamps "
         "(they are added automatically). "
         f"{extra}"
@@ -210,22 +216,27 @@ def answer_specific(video_id, question, lines, plan, scope):
         "If two lines refer to the same thing, mark only the line where it "
         "actually happens as 'direct'. "
         "Never mention line numbers inside 'answer' or 'why'. "
-        "If the lines do not contain the answer, say so in 'answer' and return an "
-        "empty evidence list. Never invent line numbers."
+        "Never invent line numbers."
     )
     user = (
         f"Question: {question}\n"
         f"(Reply language: {plan['language']}. Follow the language rule.)\n\n"
         f"Transcript lines:\n{context}"
     )
-
+ 
     data = parse_json(ask_llm(system, user))
     if not data:
         result["answer"] = "The AI reply could not be read. Please try again."
         return result
-
+ 
     result["answer"] = str(data.get("answer", ""))
-
+ 
+    found = data.get("found", True)
+    if isinstance(found, str):
+        found = found.strip().lower() not in ("false", "no", "0")
+    if not found:
+        return result
+ 
     valid = set(ids)
     seen = set()
     evidence = []
@@ -243,7 +254,7 @@ def answer_specific(video_id, question, lines, plan, scope):
             seen.add(line_id)
             evidence.append((line_id, role, str(item.get("why", ""))))
     evidence.sort()
-
+ 
     for line_id, role, why in evidence:
         line = lines[line_id]
         seconds = int(line["start"])
@@ -259,25 +270,16 @@ def answer_specific(video_id, question, lines, plan, scope):
                 "link": f"https://www.youtube.com/watch?v={video_id}&t={start_at}s",
             }
         )
-
+ 
     return result
-
-
-def answer_question(video_id, question, lines):
-    plan = make_plan(question, lines)
-    scope = scope_ids(lines, plan["time_range"])
-
-    if plan["question_type"] == "overview":
-        return answer_overview(video_id, question, lines, plan, scope)
-    return answer_specific(video_id, question, lines, plan, scope)
-
-
+ 
+ 
 def answer_question(video_id, question, lines):
     plan = make_plan(question, lines)
     scope = scope_ids(lines, plan["time_range"])
     kind = plan["question_type"]
     rule = LANGUAGE_RULES[plan["language"]]
-
+ 
     if kind == "overview":
         result = base_result(video_id, question, plan)
         return mapreduce.overview(video_id, question, lines, plan, scope, result, rule)
@@ -285,3 +287,4 @@ def answer_question(video_id, question, lines):
         result = base_result(video_id, question, plan)
         return mapreduce.collect(video_id, question, lines, plan, scope, result, rule)
     return answer_specific(video_id, question, lines, plan, scope)
+
