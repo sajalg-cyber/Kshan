@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>क्षण · Kshan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#10121a; --card:#171a24; --card2:#1d2130; --line:#2a2f40;
+  --text:#f1efe9; --muted:#9a9fb2; --accent:#f5a00a; --accent-soft:rgba(245,160,10,.13);
+  --warn:#e8b4b4; --font:"Hind","Noto Sans Devanagari","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding:32px 24px 64px;display:grid;gap:24px 32px;
+  grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);grid-template-areas:"top player" "results player"}
+.top{grid-area:top}.results{grid-area:results;min-width:0}
+.player-col{grid-area:player;align-self:start;position:sticky;top:24px}
+ 
+.brand{display:flex;align-items:baseline;gap:12px}
+.mark{font-size:64px;font-weight:700;line-height:1;letter-spacing:-.01em}
+.en{font-size:15px;color:var(--muted);font-weight:500}
+h1{font-size:30px;line-height:1.2;margin:18px 0 6px;font-weight:700;max-width:22ch}
+.sub{margin:0 0 20px;color:var(--muted)}
+ 
+.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}
+label{display:block;font-size:14px;color:var(--muted);margin:0 0 6px}
+input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:11px 14px}
+input:focus{border-color:var(--accent);outline:none}
+.row{display:flex;gap:10px;margin-top:14px;align-items:flex-end}
+.row>div{flex:1;min-width:0}
+.ask{background:var(--accent);color:#1a1200;border:0;border-radius:12px;padding:11px 24px;font-weight:700;cursor:pointer;height:46px}
+.ask:disabled{opacity:.55;cursor:wait}
+ 
+.status{display:none;align-items:center;gap:10px;margin-top:16px;color:var(--muted)}
+.status.on{display:flex}
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.error{display:none;margin-top:16px;padding:12px 14px;border-radius:12px;border:1px solid #6b3a3a;background:#2a1a1d;color:var(--warn)}
+.error.on{display:block}
+ 
+.out{margin-top:16px;display:none}
+.out.on{display:block}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.chip{font-size:13px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 11px}
+.answer{font-size:19px;font-weight:600;line-height:1.45;margin:0 0 16px;white-space:pre-wrap}
+.cards{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.card{display:flex;gap:14px;width:100%;text-align:left;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px;cursor:pointer}
+.card:hover{border-color:#44495f}
+.card.active{border-color:var(--accent);background:var(--accent-soft)}
+.t{flex:none;align-self:flex-start;min-width:64px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums;background:#2a2f40;border-radius:10px;padding:5px 8px}
+.card.active .t{background:var(--accent);color:#1a1200}
+.why{display:block;font-weight:600}
+.orig{display:block;color:var(--muted);margin-top:2px}
+.badge{display:inline-block;margin-left:8px;font-size:12px;font-weight:600;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:0 8px;vertical-align:middle}
+.yt{color:var(--muted);font-size:13px;margin-left:8px}
+.note{margin:14px 0 0;color:var(--muted);font-size:14px}
+.warning{margin:10px 0 0;color:var(--warn);font-size:14px}
+ 
+.screen{position:relative;aspect-ratio:16/9;background:#000;border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.screen iframe,.screen #yt{position:absolute;inset:0;width:100%;height:100%;border:0}
+.empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;color:var(--muted)}
+.empty b{display:block;font-size:44px;color:var(--accent);line-height:1.1}
+.now{margin:10px 2px 0;color:var(--muted);font-size:14px;min-height:21px}
+.timeline{position:relative;height:28px;margin:14px 2px 0;cursor:pointer}
+.track{position:absolute;left:0;right:0;top:12px;height:4px;border-radius:2px;background:#2a2f40}
+.fill{position:absolute;left:0;top:12px;height:4px;border-radius:2px;background:var(--accent);width:0}
+.mk{position:absolute;top:2px;width:12px;height:24px;margin-left:-6px;background:none;border:0;padding:0;cursor:pointer}
+.mk::after{content:"";position:absolute;left:4px;top:0;width:4px;height:24px;border-radius:2px;background:var(--text)}
+.mk.u::after{background:#7d8398}
+.mk:hover::after,.mk.active::after{background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.legend{margin:8px 2px 0;color:var(--muted);font-size:13px}
+ 
+@media (max-width:900px){
+  .wrap{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "player" "results";padding:20px 16px 48px}
+  .player-col{position:static}
+  .mark{font-size:52px}
+  .row{flex-direction:column;align-items:stretch}
+  .ask{width:100%}
+}
+@media (prefers-reduced-motion:reduce){.spin{animation-duration:2s}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <section class="top">
+    <div class="brand"><span class="mark" lang="hi">क्षण</span><span class="en">Kshan</span></div>
+    <h1>Ask any video. Land on the exact moment.</h1>
+    <p class="sub">Paste a YouTube link and ask in English, हिन्दी or Hinglish.</p>
+    <div class="panel">
+      <label for="url">YouTube link</label>
+      <input id="url" type="text" autocomplete="off" placeholder="https://www.youtube.com/watch?v=...">
+      <div class="row">
+        <div>
+          <label for="q">Your question</label>
+          <input id="q" type="text" autocomplete="off" placeholder="When is red chilli powder added?">
+        </div>
+        <button id="ask" class="ask" type="button">Ask</button>
+      </div>
+      <div id="status" class="status" role="status"><span class="spin"></span><span id="statusText"></span></div>
+      <div id="error" class="error" role="alert"></div>
+    </div>
+  </section>
+ 
+  <section class="results" aria-live="polite">
+    <div id="out" class="out">
+      <div id="chips" class="chips"></div>
+      <p id="answer" class="answer"></p>
+      <ul id="cards" class="cards"></ul>
+      <p id="note" class="note"></p>
+      <p id="warning" class="warning"></p>
+    </div>
+  </section>
+ 
+  <aside class="player-col">
+    <div class="screen">
+      <div id="yt"></div>
+      <div id="empty" class="empty"><div><b lang="hi">क्षण</b>The video appears here once you ask.</div></div>
+    </div>
+    <div id="now" class="now"></div>
+    <div id="timeline" class="timeline" aria-label="Video timeline">
+      <div class="track"></div><div id="fill" class="fill"></div><div id="markers"></div>
+    </div>
+    <p class="legend">Markers show where the answers sit in the video. Tap one to jump there.</p>
+  </aside>
+</main>
+ 
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+const $ = id => document.getElementById(id);
+let ingestedUrl = null, videoId = null, duration = 0;
+let player = null, apiReady = false, playerReady = false, pendingSeek = null, loadedId = null;
+let stamps = [];
+ 
+function fmt(s){
+  s = Math.max(0, Math.floor(s));
+  const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
+  const p = n => String(n).padStart(2, "0");
+  return h ? h + ":" + p(m) + ":" + p(x) : p(m) + ":" + p(x);
+}
+function parseDur(d){
+  if (typeof d === "number") return d;
+  if (typeof d === "string"){
+    if (/^\d+(\.\d+)?$/.test(d)) return +d;
+    const parts = d.split(":").map(Number);
+    if (parts.length && parts.every(n => !isNaN(n))) return parts.reduce((a, n) => a * 60 + n, 0);
+  }
+  return 0;
+}
+async function api(path, body){
+  const res = await fetch(path, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok){
+    const d = data.detail;
+    throw new Error(typeof d === "string" ? d : "Request failed (" + res.status + ")");
+  }
+  return data;
+}
+function setStatus(text){
+  $("status").classList.toggle("on", !!text);
+  $("statusText").textContent = text || "";
+}
+function setError(text){
+  $("error").textContent = text || "";
+  $("error").classList.toggle("on", !!text);
+}
+ 
+/* ---- player ---- */
+window.onYouTubeIframeAPIReady = function(){ apiReady = true; if (videoId) showVideo(videoId); };
+function showVideo(id){
+  videoId = id;
+  if (!apiReady) return;
+  $("empty").style.display = "none";
+  if (!player){
+    player = new YT.Player("yt", {
+      videoId: id,
+      playerVars: {rel: 0, playsinline: 1},
+      events: {onReady: () => { playerReady = true; if (pendingSeek !== null){ seek(pendingSeek); pendingSeek = null; } }}
+    });
+  } else if (loadedId !== id){
+    player.cueVideoById(id);
+  }
+  loadedId = id;
+}
+function seek(t){
+  if (!playerReady){ pendingSeek = t; return; }
+  player.seekTo(t, true);
+  player.playVideo();
+  $("now").textContent = "Playing from " + fmt(t);
+}
+setInterval(() => {
+  if (!playerReady || !player.getCurrentTime) return;
+  const d = duration || player.getDuration() || 0;
+  if (!d) return;
+  if (!duration){ duration = d; renderMarkers(); }
+  $("fill").style.width = Math.min(100, player.getCurrentTime() / d * 100) + "%";
+}, 500);
+$("timeline").addEventListener("click", e => {
+  if (e.target.closest(".mk") || !duration) return;
+  const r = $("timeline").getBoundingClientRect();
+  seek(Math.max(0, (e.clientX - r.left) / r.width * duration));
+});
+ 
+/* ---- results ---- */
+function activate(i){
+  document.querySelectorAll(".card").forEach((c, k) => c.classList.toggle("active", k === i));
+  document.querySelectorAll(".mk").forEach((m, k) => m.classList.toggle("active", k === i));
+}
+function jump(i){ activate(i); seek(stamps[i].start_at); }
+function renderMarkers(){
+  const box = $("markers");
+  box.textContent = "";
+  if (!duration) return;
+  stamps.forEach((s, i) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "mk" + (s.certainty === "uncertain" ? " u" : "");
+    b.style.left = Math.min(100, s.seconds / duration * 100) + "%";
+    b.title = s.time;
+    b.setAttribute("aria-label", "Jump to " + s.time);
+    b.addEventListener("click", () => jump(i));
+    box.appendChild(b);
+  });
+}
+function render(r){
+  stamps = r.timestamps || [];
+  const chips = $("chips");
+  chips.textContent = "";
+  const labels = [r.mode, r.language];
+  if (r.time_range) labels.push(fmt(r.time_range.start) + " to " + fmt(r.time_range.end));
+  labels.filter(Boolean).forEach(t => {
+    const c = document.createElement("span");
+    c.className = "chip"; c.textContent = t; chips.appendChild(c);
+  });
+  $("answer").textContent = r.answer || "";
+  const list = $("cards");
+  list.textContent = "";
+  stamps.forEach((s, i) => {
+    const li = document.createElement("li");
+    const card = document.createElement("button");
+    card.type = "button"; card.className = "card";
+    const t = document.createElement("span"); t.className = "t"; t.textContent = s.time;
+    const body = document.createElement("span");
+    const why = document.createElement("span"); why.className = "why"; why.textContent = s.why || "";
+    if (s.certainty === "uncertain"){
+      const b = document.createElement("span"); b.className = "badge"; b.textContent = "uncertain"; why.appendChild(b);
+    }
+    if (s.link && /^https:\/\//.test(s.link)){
+      const a = document.createElement("a"); a.className = "yt"; a.href = s.link; a.target = "_blank"; a.rel = "noopener";
+      a.textContent = "Open on YouTube";
+      a.addEventListener("click", e => e.stopPropagation());
+      why.appendChild(a);
+    }
+    const orig = document.createElement("span"); orig.className = "orig"; orig.textContent = s.text || "";
+    body.append(why, orig);
+    card.append(t, body);
+    card.addEventListener("click", () => jump(i));
+    li.appendChild(card); list.appendChild(li);
+  });
+  $("note").textContent = r.note || "";
+  $("warning").textContent = r.warning || "";
+  $("out").classList.add("on");
+  renderMarkers();
+  activate(-1);
+}
+ 
+/* ---- ask ---- */
+async function ask(){
+  const url = $("url").value.trim(), question = $("q").value.trim();
+  if (!url || !question){ setError("Add a YouTube link and a question."); return; }
+  setError(""); $("ask").disabled = true;
+  try {
+    if (ingestedUrl !== url){
+      setStatus("Reading the video. Videos without captions can take a few minutes.");
+      const info = await api("/ingest", {url});
+      ingestedUrl = url;
+      duration = parseDur(info.duration);
+      stamps = []; $("fill").style.width = "0"; $("now").textContent = "";
+      showVideo(info.video_id);
+    }
+    setStatus("Finding the moment.");
+    render(await api("/ask", {url, question}));
+  } catch (e){
+    setError(e.message || "Something went wrong. Check the link and try again.");
+  } finally {
+    setStatus(""); $("ask").disabled = false;
+  }
+}
+$("ask").addEventListener("click", ask);
+["url", "q"].forEach(id => $(id).addEventListener("keydown", e => { if (e.key === "Enter") ask(); }));
+</script>
+</body>
+</html>
+ 
